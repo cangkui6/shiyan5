@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gateway CORS测试</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .test-section {
+            margin-bottom: 20px;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        button {
+            padding: 8px 15px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        pre {
+            background-color: #f5f5f5;
+            padding: 10px;
+            border-radius: 5px;
+            overflow-x: auto;
+        }
+    </style>
+</head>
+<body>
+    <h1>Gateway CORS测试页面</h1>
+    <p>此页面用于测试Gateway的跨域资源共享(CORS)配置是否正确。</p>
+
+    <div class="test-section">
+        <h2>1. 访问公开API（无需认证）</h2>
+        <button onclick="testPublicApi()">发送请求</button>
+        <p>结果：</p>
+        <pre id="public-api-result">请点击按钮发送请求...</pre>
+    </div>
+
+    <div class="test-section">
+        <h2>2. 登录获取Token</h2>
+        <button onclick="testLogin()">登录</button>
+        <p>结果：</p>
+        <pre id="login-result">请点击按钮发送请求...</pre>
+    </div>
+
+    <div class="test-section">
+        <h2>3. 使用Token访问受保护资源</h2>
+        <button onclick="testProtectedApi()">发送请求</button>
+        <p>结果：</p>
+        <pre id="protected-api-result">请点击按钮发送请求...</pre>
+    </div>
+
+    <script>
+        // 存储登录获取的token
+        let authToken = '';
+
+        // 测试访问公开API
+        async function testPublicApi() {
+            const resultElement = document.getElementById('public-api-result');
+            resultElement.textContent = '发送请求中...';
+            
+            try {
+                const response = await fetch('http://localhost:8080/cors-test/public-api', {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                const data = await response.json();
+                resultElement.textContent = JSON.stringify(data, null, 2);
+            } catch (error) {
+                resultElement.textContent = `错误: ${error.message}`;
+            }
+        }
+
+        // 测试登录
+        async function testLogin() {
+            const resultElement = document.getElementById('login-result');
+            resultElement.textContent = '发送请求中...';
+            
+            try {
+                const formData = new URLSearchParams();
+                formData.append('username', 'admin');
+                formData.append('password', 'password');
+                
+                const response = await fetch('http://localhost:8080/cors-test/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded'
+                    },
+                    body: formData
+                });
+                
+                const data = await response.json();
+                resultElement.textContent = JSON.stringify(data, null, 2);
+                
+                if (data.success && data.token) {
+                    authToken = data.token;
+                }
+            } catch (error) {
+                resultElement.textContent = `错误: ${error.message}`;
+            }
+        }
+
+        // 测试访问受保护资源
+        async function testProtectedApi() {
+            const resultElement = document.getElementById('protected-api-result');
+            resultElement.textContent = '发送请求中...';
+            
+            if (!authToken) {
+                resultElement.textContent = '请先登录获取token';
+                return;
+            }
+            
+            try {
+                const response = await fetch('http://localhost:8080/provider/hello', {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-Auth-Token': authToken
+                    }
+                });
+                
+                const data = await response.text();
+                resultElement.textContent = data;
+            } catch (error) {
+                resultElement.textContent = `错误: ${error.message}`;
+            }
+        }
+    </script>
+</body>
+</html> 

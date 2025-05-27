@@ -1,0 +1,13 @@
+server:
+  port: 8761
+
+eureka:
+  instance:
+    hostname: localhost  # 修改为localhost
+  client:
+    register-with-eureka: false   # 改为false，不再向其他Eureka注册
+    fetch-registry: false  # 改为false，不再从其他Eureka拉取信息
+    service-url:
+      defaultZone: http://localhost:8761/eureka/  # 指向自身
+  server:
+    enable-self-preservation: false  # 关闭自我保护模式（用于测试）

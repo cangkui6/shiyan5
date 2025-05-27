@@ -1,0 +1,146 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: service-gateway
+  # Add Redis configuration
+  data:
+    redis:
+      # Option 1: Disable Redis health check
+      client-name: gateway-redis-client
+      host: localhost
+      port: 6379
+      connect-timeout: 2000
+  cloud:
+    gateway:
+      # 全局CORS配置
+      globalcors:
+        cors-configurations:
+          '[/**]':
+            allowedOriginPatterns: ["*"]  # 使用pattern而不是origin，解决与allowCredentials的冲突
+            allowedMethods:
+              - GET
+              - POST
+              - PUT
+              - DELETE
+              - OPTIONS
+            allowedHeaders: "*"
+            allowCredentials: true
+            maxAge: 3600
+            exposedHeaders:
+              - Authorization
+              - X-Auth-Token
+      discovery:
+        locator:
+          enabled: true # 开启从注册中心动态创建路由的功能
+          lower-case-service-id: true # 使用小写服务名，默认是大写
+      routes:
+        # Provider服务路由 - 不去除前缀
+        - id: service-provider-route
+          uri: lb://service-provider # 使用lb://开头的uri，从Eureka注册中心获取服务
+          predicates:
+            - Path=/provider/**  # 路径匹配
+          filters:
+            - RewritePath=/provider/(?<segment>.*), /provider/${segment} # 保留前缀
+            
+        # 专门用于负载均衡测试的路由 - 支持/lb-test直接访问
+        - id: lb-test-route
+          uri: lb://service-provider
+          predicates:
+            - Path=/lb-test
+          filters:
+            - SetPath=/provider/lb-test
+            
+        # 专门用于负载均衡测试的路由 - 支持/lb-test/**访问
+        - id: lb-test-sub-route
+          uri: lb://service-provider
+          predicates:
+            - Path=/lb-test/**
+          filters:
+            - RewritePath=/lb-test/(?<segment>.*), /provider/lb-test
+            
+        # Consumer服务路由 - 不去除前缀
+        - id: service-consumer-route
+          uri: lb://service-consumer
+          predicates:
+            - Path=/consumer/**
+          filters:
+            - RewritePath=/consumer/(?<segment>.*), /consumer/${segment} # 保留前缀
+
+# Resilience4j 配置
+resilience4j:
+  circuitbreaker:
+    configs:
+      default:
+        slidingWindowType: COUNT_BASED
+        slidingWindowSize: 10
+        failureRateThreshold: 50
+        waitDurationInOpenState: 10000  # 10秒
+        permittedNumberOfCallsInHalfOpenState: 5
+        registerHealthIndicator: true
+        slowCallRateThreshold: 50
+    instances:
+      providerCircuitBreaker:
+        baseConfig: default
+        waitDurationInOpenState: 20000  # 20秒
+      consumerCircuitBreaker:
+        baseConfig: default
+        waitDurationInOpenState: 15000  # 15秒
+  timelimiter:
+    configs:
+      default:
+        timeoutDuration: 3s
+        cancelRunningFuture: true
+    instances:
+      providerCircuitBreaker:
+        baseConfig: default
+        timeoutDuration: 2s
+      consumerCircuitBreaker:
+        baseConfig: default
+        timeoutDuration: 4s
+  retry:
+    configs:
+      default:
+        maxAttempts: 3
+        waitDuration: 100ms
+        retryExceptions:
+          - java.io.IOException
+          - java.util.concurrent.TimeoutException
+          - org.springframework.web.client.HttpServerErrorException
+    instances:
+      providerRetry:
+        baseConfig: default
+        maxAttempts: 3
+      consumerRetry:
+        baseConfig: default
+        maxAttempts: 2
+
+eureka:
+  client:
+    service-url:
+      defaultZone: http://localhost:8761/eureka/
+  instance:
+    prefer-ip-address: true
+    instance-id: ${spring.cloud.client.ip-address}:${server.port}
+
+# 暴露actuator端点
+management:
+  endpoints:
+    web:
+      exposure:
+        include: "*"
+  endpoint:
+    health:
+      show-details: always
+      group:
+        circuit-breakers:
+          include: circuitBreakers
+  health:
+    circuitbreakers:
+      enabled: true
+    redis:
+      enabled: false  # Disable Redis health check
+
+# 禁用Spring Security的默认表单登录
+spring.security.user.password: disabled
