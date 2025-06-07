@@ -1,0 +1,27 @@
+server:
+  port: 8888  # 配置服务器默认端口
+
+spring:
+  application:
+    name: service-config-server
+  cloud:
+    config:
+      server:
+        git:
+
+          uri: https://github.com/cangkui6/config-repo.git # 替换为您的Git仓库地址
+          search-paths: /**  # 搜索所有目录
+          default-label: main  # 使用main分支（GitHub现在默认是main而不是master）
+          # 如果是私有仓库，需要添加用户名和密码/token
+          # username: 您的GitHub用户名
+          # password: 您的访问令牌
+          clone-on-start: true  # 启动时克隆
+
+# Eureka客户端配置
+eureka:
+  client:
+    service-url:
+      defaultZone: http://localhost:8761/eureka/
+  instance:
+    prefer-ip-address: true
+    instance-id: config-server-8888

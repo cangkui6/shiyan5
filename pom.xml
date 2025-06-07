@@ -37,6 +37,7 @@
         <module>service-register_8761</module>
         <module>service-provider_8081</module>
         <module>service-consumer_8083</module>
+        <module>service-config-server</module>
     </modules>
 
     <dependencyManagement>
