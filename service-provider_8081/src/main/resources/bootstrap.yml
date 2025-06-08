@@ -3,20 +3,23 @@ spring:
     name: service-provider  # 应用名称，与配置中心的配置文件前缀对应
   cloud:
     config:
-      uri: http://localhost:8888  # 配置中心地址
       profile: dev  # 环境，对应配置文件后缀
       label: main  # Git仓库分支，默认main或master
       fail-fast: true  # 快速失败，连接配置中心失败时立即报错
+      discovery:
+        enabled: true  # 启用服务发现
+        service-id: SERVICE-CONFIG-SERVER  # 配置中心在Eureka中的服务ID（大写）
 
-  # 确保能导入配置
+  # 修改配置导入
   config:
-    import: "optional:configserver:http://localhost:8888"
+    import: "optional:configserver:"  # 不指定固定URL，通过服务发现查找
 
 # 注册中心信息可以保留在bootstrap中
 eureka:
   client:
     service-url:
       defaultZone: http://localhost:8761/eureka/
+    fetch-registry: true  # 确保能获取服务注册信息
   instance:
     instance-id: service-provider-8081
     prefer-ip-address: true
