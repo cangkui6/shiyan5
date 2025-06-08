@@ -2,9 +2,18 @@ server:
   port: 8888  # 配置服务器默认端口
 
 spring:
+  rabbitmq:
+    host: localhost
+    port: 5672
+    username: guest
+    password: guest
   application:
     name: service-config-server
   cloud:
+    bus:
+      enabled: true
+      refresh:
+        enabled: true
     config:
       server:
         git:
@@ -25,3 +34,13 @@ eureka:
   instance:
     prefer-ip-address: true
     instance-id: ${spring.application.name}:${server.port}
+
+# 开放刷新端点
+management:
+  endpoints:
+    web:
+      exposure:
+        include: bus-refresh
+  endpoint:
+    bus-refresh:
+      enabled: true

@@ -9,10 +9,21 @@ spring:
       discovery:
         enabled: true  # 启用服务发现
         service-id: SERVICE-CONFIG-SERVER  # 配置中心在Eureka中的服务ID（大写）
-
+  rabbitmq:
+    host: localhost
+    port: 5672
+    username: guest
+    password: guest
   # 修改配置导入
   config:
     import: "optional:configserver:"  # 不指定固定URL，通过服务发现查找
+
+# 开启刷新端点
+management:
+  endpoints:
+    web:
+      exposure:
+        include: refresh,health,info
 
 # 注册中心信息可以保留在bootstrap中
 eureka:
